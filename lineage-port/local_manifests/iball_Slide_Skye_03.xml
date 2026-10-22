@@ -20,6 +20,9 @@
   <remove-project name="LineageOS/android_system_sepolicy" />
   <project path="system/sepolicy" name="android_system_sepolicy" remote="kgvhub" revision="lineage-15.1" groups="pdk" />
 
+  <remove-project name="LineageOS/android_packages_apps_FMRadio" />
+  <project path="packages/apps/FMRadio" name="android_packages_apps_FMRadio" remote="kgvhub" revision="lineage-15.1" />
+
   <project path="device/iball/Slide_Skye_03" name="android_device_iball_Slide_Skye_03" remote="kgvhub" revision="lineage-15.1" />
   <project path="vendor/iball/Slide_Skye_03" name="android_vendor_iball_Slide_Skye_03" remote="kgvhub" revision="lineage-15.1" />
 </manifest>

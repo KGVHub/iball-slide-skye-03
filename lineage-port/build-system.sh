@@ -16,9 +16,11 @@ cp -a "$PROJECT_ROOT/lineage-port/device/iball/Slide_Skye_03/." "$SOURCE_DIR/dev
 mkdir -p "$SOURCE_DIR/vendor/iball/Slide_Skye_03"
 cp -a "$PROJECT_ROOT/lineage-port/vendor/iball/Slide_Skye_03/." "$SOURCE_DIR/vendor/iball/Slide_Skye_03/"
 mkdir -p "$SOURCE_DIR/vendor/iball/Slide_Skye_03/proprietary/lib"
-for lib in libefuse.so librpmbclient.so; do
+for lib in libefuse.so librpmbclient.so libfmjni.so; do
  cp -p "$PROJECT_ROOT/blobs/system/lib/$lib" "$SOURCE_DIR/vendor/iball/Slide_Skye_03/proprietary/lib/$lib"
 done
+mkdir -p "$SOURCE_DIR/vendor/iball/Slide_Skye_03/proprietary/etc"
+cp -p "$PROJECT_ROOT/blobs/system/app/DreamFMRadio/fm.conf" "$SOURCE_DIR/vendor/iball/Slide_Skye_03/proprietary/etc/fm.conf"
 rm -rf "$SOURCE_DIR/device/iball/Slide_Skye_03/proprietary"
 # Android 8.1 clang needs ncurses5 sonames; this host provides ncurses6.
 # Keep the compatibility links in generated output, not in source checkouts.

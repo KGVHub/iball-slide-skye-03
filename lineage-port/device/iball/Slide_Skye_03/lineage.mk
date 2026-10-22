@@ -21,3 +21,9 @@ PRODUCT_LOCALES := en_US
 $(call inherit-product, vendor/iball/Slide_Skye_03/Slide_Skye_03-vendor.mk)
 
 DEVICE_PACKAGE_OVERLAYS += device/iball/Slide_Skye_03/overlay
+
+# FM radio with the stock Spreadtrum libfmjni
+PRODUCT_PACKAGES += FMRadio
+# /dev/fm is owned by the media group (stock platform.xml did the same).
+PRODUCT_COPY_FILES += \
+    device/iball/Slide_Skye_03/permissions/fmradio-media-gid.xml:system/etc/permissions/fmradio-media-gid.xml

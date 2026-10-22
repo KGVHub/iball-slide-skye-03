@@ -6,3 +6,7 @@
 PRODUCT_COPY_FILES += \
     vendor/iball/Slide_Skye_03/proprietary/lib/libefuse.so:system/lib/libefuse.so \
     vendor/iball/Slide_Skye_03/proprietary/lib/librpmbclient.so:system/lib/librpmbclient.so
+
+# FM radio: the stock config at the path the stock libfmjni reads.
+PRODUCT_COPY_FILES += \
+    vendor/iball/Slide_Skye_03/proprietary/etc/fm.conf:system/app/DreamFMRadio/fm.conf

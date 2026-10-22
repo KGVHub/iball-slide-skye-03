@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spreadtrum /dev/fm is owned by the media group (as in the stock platform.xml). -->
+<permissions>
+    <permission name="android.permission.ACCESS_FM_RADIO" >
+        <group gid="media" />
+    </permission>
+</permissions>

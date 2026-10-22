@@ -1,0 +1,195 @@
+diff --git a/jni/fmr/Android.mk b/jni/fmr/Android.mk
+index 2a86937..f96d79b 100644
+--- a/jni/fmr/Android.mk
++++ b/jni/fmr/Android.mk
+@@ -13,6 +13,8 @@
+ # limitations under the License.
+ 
+ ifneq ($(BOARD_HAVE_QCOM_FM),true)
++# Devices that ship their own libfmjni (e.g. Spreadtrum) set BOARD_FMRADIO_PREBUILT_JNI.
++ifneq ($(BOARD_FMRADIO_PREBUILT_JNI),true)
+ LOCAL_PATH := $(call my-dir)
+ 
+ include $(CLEAR_VARS)
+@@ -36,4 +38,5 @@ LOCAL_MODULE := libfmjni
+ LOCAL_MODULE_TAGS := optional
+ 
+ include $(BUILD_SHARED_LIBRARY)
++endif # BOARD_FMRADIO_PREBUILT_JNI
+ endif # BOARD_HAVE_QCOM_FM
+\ No newline at end of file
+diff --git a/res/values/config.xml b/res/values/config.xml
+index b587355..4070f7f 100644
+--- a/res/values/config.xml
++++ b/res/values/config.xml
+@@ -16,4 +16,7 @@
+ 
+ <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+     <bool name="config_useSoftwareRenderingForAudio" translatable="false">true</bool>
++    <!-- Route FM audio with audio HAL parameters (handleFm / FM_Volume, as on
++         Spreadtrum) instead of an FM tuner audio patch or software rendering. -->
++    <bool name="config_useHalFmAudioParameters" translatable="false">false</bool>
+ </resources>
+diff --git a/src/com/android/fmradio/FmNative.java b/src/com/android/fmradio/FmNative.java
+index da8cbce..0c74ce2 100644
+--- a/src/com/android/fmradio/FmNative.java
++++ b/src/com/android/fmradio/FmNative.java
+@@ -80,7 +80,7 @@ public class FmNative {
+      *
+      * @return The scan station array(short)
+      */
+-    static native short[] autoScan();
++    static native short[] autoScan(int startStation);
+ 
+     /**
+      * Stop scan, also can stop seek, other native when scan should call stop
+@@ -151,4 +151,39 @@ public class FmNative {
+      * @return (0, success; 1 failed; 2 not support)
+      */
+     static native int switchAntenna(int antenna);
++
++    /*
++     * Natives the Spreadtrum (SC7731E) libfmjni also registers. RegisterNatives
++     * fails unless every one is declared, even though the app does not use them.
++     */
++    static native int getBler();
++    static native int getRssi();
++    static native int getSnr();
++    static native int readRegParm(FmRegCtlParms parm);
++    static native int writeRegParm(FmRegCtlParms parm);
++    static native int getTuneParm(FmSeekCriteriaParms parm);
++    static native int setTuneParm(FmSeekCriteriaParms parm);
++    static native int getAudioParm(FmAudioThresholdParms parm);
++    static native int setAudioParm(FmAudioThresholdParms parm);
++
++    static class FmRegCtlParms {
++        int rw_flag;
++        int addr;
++        int val;
++    }
++
++    static class FmSeekCriteriaParms {
++        int rssi_th;
++        int snr_th;
++        int freq_offset_th;
++        int pilot_power_th;
++        int noise_power_th;
++    }
++
++    static class FmAudioThresholdParms {
++        int hbound;
++        int lbound;
++        int power_th;
++        int phyt;
++    }
+ }
+diff --git a/src/com/android/fmradio/FmService.java b/src/com/android/fmradio/FmService.java
+index 3323fb0..0d5b141 100644
+--- a/src/com/android/fmradio/FmService.java
++++ b/src/com/android/fmradio/FmService.java
+@@ -177,6 +177,9 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
+     // Instance variables
+     private Context mContext = null;
+     private AudioManager mAudioManager = null;
++    // FM audio is switched by audio HAL parameters (config_useHalFmAudioParameters)
++    private boolean mUseHalFmParameters = false;
++    private boolean mIsHalFmAudioOn = false;
+     private ActivityManager mActivityManager = null;
+     //private MediaPlayer mFmPlayer = null;
+     private WakeLock mWakeLock = null;
+@@ -274,6 +277,12 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
+                 // screen off, if FM play, close rds
+             } else if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                 setRdsAsync(false);
++            } else if (AudioManager.VOLUME_CHANGED_ACTION.equals(action)) {
++                if (mIsHalFmAudioOn && intent.getIntExtra(AudioManager.EXTRA_VOLUME_STREAM_TYPE, -1)
++                        == AudioManager.STREAM_MUSIC) {
++                    mAudioManager.setParameters("FM_Volume=" + intent.getIntExtra(
++                            AudioManager.EXTRA_VOLUME_STREAM_VALUE, 0) + ";");
++                }
+                 // switch antenna when headset plug in or plug out
+             } else if (Intent.ACTION_HEADSET_PLUG.equals(action)) {
+                 // switch antenna should not impact audio focus status
+@@ -836,7 +845,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
+         short[] stationsInShort = null;
+         if (!mIsStopScanCalled) {
+             mIsNativeScanning = true;
+-            stationsInShort = FmNative.autoScan();
++            stationsInShort = FmNative.autoScan(FmUtils.getLowestStation());
+             mIsNativeScanning = false;
+         }
+ 
+@@ -1277,6 +1286,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
+         super.onCreate();
+         mContext = getApplicationContext();
+         mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
++        mUseHalFmParameters = getResources().getBoolean(R.bool.config_useHalFmAudioParameters);
+         mActivityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+         PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+@@ -1448,6 +1458,9 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
+         filter.addAction(Intent.ACTION_SCREEN_ON);
+         filter.addAction(Intent.ACTION_SCREEN_OFF);
+         filter.addAction(Intent.ACTION_HEADSET_PLUG);
++        if (mUseHalFmParameters) {
++            filter.addAction(AudioManager.VOLUME_CHANGED_ACTION);
++        }
+         mBroadcastReceiver = new FmServiceBroadcastReceiver();
+         registerReceiver(mBroadcastReceiver, filter);
+     }
+@@ -1688,13 +1701,37 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
+             }
+ 
+             startAudioTrack();
++            if (mUseHalFmParameters) {
++                setHalFmAudio(true);
++                return;
++            }
+             startPatchOrRender();
+         } else {
++            if (mUseHalFmParameters) {
++                setHalFmAudio(false);
++                return;
++            }
+             releaseAudioPatch();
+             stopRender();
+         }
+     }
+ 
++    /*
++     * The audio HAL mixes FM into the active output when handleFm=1; the
++     * silent AudioTrack started before keeps that output routed. FM_Volume
++     * follows the music stream index.
++     */
++    private void setHalFmAudio(boolean on) {
++        if (on) {
++            mAudioManager.setParameters("handleFm=1;FM_Volume="
++                    + mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC) + ";");
++        } else {
++            mAudioManager.setParameters("handleFm=0;");
++        }
++        mIsHalFmAudioOn = on;
++        Log.d(TAG, "setHalFmAudio " + on);
++    }
++
+     private void startPatchOrRender() {
+         ArrayList<AudioPatch> patches = new ArrayList<AudioPatch>();
+         mAudioManager.listAudioPatches(patches);
+diff --git a/src/com/android/fmradio/FmUtils.java b/src/com/android/fmradio/FmUtils.java
+index b6219fd..9c24105 100644
+--- a/src/com/android/fmradio/FmUtils.java
++++ b/src/com/android/fmradio/FmUtils.java
+@@ -51,6 +51,13 @@ public class FmUtils {
+     // convert rate
+     private static final int CONVERT_RATE = 10;
+ 
++    /**
++     * The lowest station of the band, where a full scan starts
++     */
++    public static int getLowestStation() {
++        return LOWEST_STATION;
++    }
++
+     // minimum storage space for record (512KB).
+     // Need to check before starting recording and during recording to avoid
+     // recording keeps going but there is no free space in sdcard.

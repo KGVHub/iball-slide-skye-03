@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The Spreadtrum audio HAL mixes FM in on handleFm=1 / FM_Volume; the
+         audio policy has no FM tuner device for a patch or AudioRecord. -->
+    <bool name="config_useHalFmAudioParameters">true</bool>
+</resources>

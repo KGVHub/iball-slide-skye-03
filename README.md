@@ -142,6 +142,12 @@ Two later fixes (no longer boot blockers):
    AOSP's 1 ms / 10 ms haptic pulses could not be felt. A device overlay uses
    stock's 30 ms key pattern and a 40 ms long-press.
 
+8. **FM radio**: LineageOS FMRadio with the stock Spreadtrum `libfmjni`
+   (FmNative declares all 25 natives it registers; `autoScan(int)`), its
+   config at `/system/app/DreamFMRadio/fm.conf`, the `media` group for
+   `/dev/fm`, and FM audio switched by audio HAL parameters
+   (`handleFm`, `FM_Volume`) since the audio policy has no FM tuner device.
+
 Debug loop that worked: read `logcat` (or `/sys/fs/pstore` from TWRP after
 a crash), rebuild only the failing part, push it into `/system` from TWRP,
 reboot.
@@ -234,7 +240,8 @@ If you change `BUILD_FINGERPRINT` or other build properties, delete
 
 ## Known issues
 
-- LineageOS untested: WiFi connect, audio playback, FM, GPS, calls/SMS.
+- LineageOS untested: calls/SMS/mobile data (SIM).
+- FM radio plays, but seek/scan finds few or no stations with the earphones as antenna: tune `fm.conf` seek thresholds if needed.
 
 ## Credits
 
