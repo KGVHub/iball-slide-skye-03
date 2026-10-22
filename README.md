@@ -64,7 +64,7 @@ From a booted Android with USB debugging on:
 adb reboot bootloader
 fastboot flash vbmeta vbmeta-v2.img
 fastboot flash recovery twrp-3.7.0_9-KGV-Slide_Skye_03.img
-fastboot flash boot boot-KGV-Pro-X-daily.img
+fastboot flash boot boot-KGV-Pro-X-stock.img
 fastboot reboot
 ```
 
@@ -83,7 +83,7 @@ Then get into TWRP (below) and run **Wipe → Format Data**, then reboot.
 The first boot takes several minutes. A "vendor image mismatch" box may
 appear: tap OK (known, harmless).
 
-To go back to stock: flash `vbmeta-v2.img`, `boot-KGV-Pro-X-daily.img` and
+To go back to stock: flash `vbmeta-v2.img`, `boot-KGV-Pro-X-stock.img` and
 the stock `system.img` from the firmware `.pac`, then format data.
 
 ## Getting into TWRP
