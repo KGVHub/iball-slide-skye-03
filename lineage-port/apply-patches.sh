@@ -13,3 +13,4 @@ apply_patch_file() {
 apply_patch_file prebuilts/sdk "$PROJECT_ROOT/lineage-port/patches/prebuilts-sdk-jack-curl-bootstrap.patch"
 apply_patch_file system/sepolicy "$PROJECT_ROOT/lineage-port/patches/system-sepolicy-stock-vendor-dups.patch"
 apply_patch_file system/core "$PROJECT_ROOT/lineage-port/patches/system-core-device-ld-config.patch"
+apply_patch_file build/make "$PROJECT_ROOT/lineage-port/patches/build-make-device-vintf.patch"

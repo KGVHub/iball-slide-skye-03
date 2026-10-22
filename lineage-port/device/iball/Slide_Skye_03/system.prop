@@ -4,3 +4,7 @@ ro.sf.lcd_density=160
 ro.sf.hwrotation=270
 qemu.hw.mainkeys=0
 ro.config.low_ram=true
+
+# The bootloader sets only androidboot.vbmeta.avb_version; VINTF compares
+# both AVB versions with the framework matrix.
+ro.boot.avb_version=1.0

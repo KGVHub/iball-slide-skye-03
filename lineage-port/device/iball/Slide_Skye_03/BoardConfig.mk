@@ -40,3 +40,12 @@ TARGET_LD_CONFIG_FILE := device/iball/Slide_Skye_03/ld.config.txt
 # the 91 the stock init accepts, so ro.build.fingerprint stayed empty and
 # ActivityManager crashed formatting the fingerprint-mismatch warning.
 BUILD_FINGERPRINT := iBall/Slide_Skye_03/Slide_Skye_03:8.1.0/OPM2.171019.012/32419:user/release-keys
+
+# VINTF. The stock bootloader reports vbmeta AVB 1.0 (the stock matrix says
+# 1.0 too), and the 4.4 base kernel requirements include CONFIG_RANDOMIZE_BASE,
+# which 32-bit ARM 4.4 cannot provide, and CONFIG_FB, off in the stock kernel.
+BOARD_FRAMEWORK_VBMETA_VERSION := 1.0
+DEVICE_KERNEL_CONFIG_DATA := device/iball/Slide_Skye_03/vintf/kernel-config-data
+
+# Platform policy additions the stock vendor policy depends on.
+BOARD_PLAT_PUBLIC_SEPOLICY_DIR := device/iball/Slide_Skye_03/sepolicy/public

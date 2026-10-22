@@ -1,0 +1,7 @@
+# Platform types the stock iBall platform policy declared and the stock vendor
+# policy still uses (as *_27_0). Only those a running vendor service needs.
+
+# vendor.sprd.hardware.log@1.0-service registers ILogControl
+# (nonplat_hwservice_contexts); the vendor policy allows hal_log_default to
+# add it, but the type must exist in the platform policy.
+type hal_log_hwservice, hwservice_manager_type;

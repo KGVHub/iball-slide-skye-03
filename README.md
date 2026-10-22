@@ -80,8 +80,7 @@ fastboot flash boot boot-KGV-Pro-X-lineage.img
 ```
 
 Then get into TWRP (below) and run **Wipe → Format Data**, then reboot.
-The first boot takes several minutes. A "vendor image mismatch" box may
-appear: tap OK (known, harmless).
+The first boot takes several minutes.
 
 To go back to stock: flash `vbmeta-v2.img`, `boot-KGV-Pro-X-stock.img` and
 the stock `system.img` from the firmware `.pac`, then format data.
@@ -127,6 +126,17 @@ The stock vendor is from an early 8.1 release, and the stock boot ramdisk's
    jars on the class paths).
 4. **Fingerprint**: Lineage's 94-byte fingerprint is over the stock init's
    91-byte property limit. The build uses the stock fingerprint.
+
+Two later fixes (no longer boot blockers):
+
+5. **VINTF**: the stock bootloader reports only `vbmeta.avb_version` 1.0, and
+   the 4.4 kernel requirements include `CONFIG_RANDOMIZE_BASE` (impossible on
+   32-bit ARM). The matrix now declares AVB 1.0 like stock, `ro.boot.avb_version`
+   is set, and the device ships its own kernel config data (needs the KGVHub
+   `android_build` fork). This removed the "vendor image mismatch" box.
+6. **SPRD log HAL**: the stock vendor policy uses a platform type
+   (`hal_log_hwservice`) that only iBall's platform policy had; the device
+   platform policy declares it.
 
 Debug loop that worked: read `logcat` (or `/sys/fs/pstore` from TWRP after
 a crash), rebuild only the failing part, push it into `/system` from TWRP,
@@ -220,9 +230,6 @@ If you change `BUILD_FINGERPRINT` or other build properties, delete
 
 ## Known issues
 
-- LineageOS: "vendor image mismatch" box at boot (VINTF check, harmless).
-- LineageOS: `vendor.sprd.hardware.log@1.0-service` restarts on an SELinux
-  denial (Spreadtrum debug logging only).
 - LineageOS untested: WiFi connect, audio playback, FM, GPS, calls/SMS.
 
 ## Credits

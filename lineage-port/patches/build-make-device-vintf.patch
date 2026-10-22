@@ -1,0 +1,28 @@
+diff --git a/target/board/Android.mk b/target/board/Android.mk
+index 5504c52..54accb1 100644
+--- a/target/board/Android.mk
++++ b/target/board/Android.mk
+@@ -126,13 +126,23 @@ FRAMEWORK_VBMETA_VERSION = $$("$(AVBTOOL)" add_hashtree_footer \
+                               --print_required_libavb_version \
+                               $(INTERNAL_AVB_SYSTEM_SIGNING_ARGS) \
+                               $(BOARD_AVB_SYSTEM_ADD_HASHTREE_FOOTER_ARGS))
++else ifneq ($(BOARD_FRAMEWORK_VBMETA_VERSION),)
++# AVB is applied outside the build (e.g. a stock bootloader's vbmeta chain);
++# declare the version the device's bootloader reports.
++FRAMEWORK_VBMETA_VERSION := $(BOARD_FRAMEWORK_VBMETA_VERSION)
+ else
+ FRAMEWORK_VBMETA_VERSION := 0.0
+ endif
+ 
+ # All kernel versions that the system image works with.
+ KERNEL_VERSIONS := 3.18 4.4 4.9
++# A device may supply its own copy, e.g. without options its architecture
++# cannot provide (CONFIG_RANDOMIZE_BASE on 32-bit ARM 4.4).
++ifneq ($(DEVICE_KERNEL_CONFIG_DATA),)
++KERNEL_CONFIG_DATA := $(DEVICE_KERNEL_CONFIG_DATA)
++else
+ KERNEL_CONFIG_DATA := test/vts-testcase/kernel/config/data
++endif
+ 
+ $(GEN): $(foreach version,$(KERNEL_VERSIONS),\
+ 	$(wildcard $(KERNEL_CONFIG_DATA)/android-$(version)/android-base*.cfg))
