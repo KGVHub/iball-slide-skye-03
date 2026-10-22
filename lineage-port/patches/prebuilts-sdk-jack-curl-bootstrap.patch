@@ -1,0 +1,31 @@
+diff --git a/tools/jack-admin b/tools/jack-admin
+index f028d27..9639e34 100755
+--- a/tools/jack-admin
++++ b/tools/jack-admin
+@@ -147,6 +147,11 @@ updateProgram () {
+ }
+ 
+ isServerRunning () {
++  # Recent curl validates certificate paths before connecting. Jack creates
++  # these PEM files at first launch, so a missing pair means not started yet.
++  if [ ! -r "$JACK_HOME/server.pem" ] || [ ! -r "$JACK_HOME/client.pem" ]; then
++    return 1
++  fi
+   RETRY_SESSION=3
+   DONE=1
+   let DATE_TIMEOUT=$(date +%s)+$JACK_CONNECTION_TIMEOUT
+@@ -188,6 +193,14 @@ waitServerStarted () {
+   DONE=1
+   let DATE_TIMEOUT=$(date +%s)+$JACK_CONNECTION_TIMEOUT
+   while [ "$DONE" -ne 0 ]; do
++    if [ ! -r "$JACK_HOME/server.pem" ] || [ ! -r "$JACK_HOME/client.pem" ]; then
++      if [ $(date +%s) -ge $DATE_TIMEOUT ]; then
++        echo "Jack server did not create its certificates" >&2
++        abort
++      fi
++      sleep 1
++      continue
++    fi
+     HTTP_CODE=$(curl -f $JACK_EXTRA_CURL_OPTIONS \
+          --cert "${JACK_HOME}/client.pem" \
+          --cacert "${JACK_HOME}/server.pem" \

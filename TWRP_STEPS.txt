@@ -1,0 +1,231 @@
+=====================================================================
+  TWRP 3.7.0_9 on iBall Slide Skye 03 - exactly how it was done
+  Device : iBall Slide Skye 03 (Unisoc SC7731E, board sp7731e_1h10,
+           Android 8.1 Go, kernel 4.4.83)
+  Host   : Ubuntu 26.04, 8 cores, 7 GB RAM
+  Date   : 2026-10-21
+=====================================================================
+
+Everything lives under /home/kgvarunkanth/claude (written as ~/claude below).
+
+---------------------------------------------------------------------
+0. WHY THE FIRST FLASHES HUNG (important to understand)
+---------------------------------------------------------------------
+- "fastboot flash recovery <our image>" sat at "Writing 'recovery'"
+  forever, then the tablet dropped off USB.
+- Reading Spreadtrum's u-boot source (copslock/sprd_bsp_bootloader_u-boot15,
+  lib/secureboot/common/sec_common.c) showed that fastboot ALWAYS
+  verifies boot / recovery / vbmeta / modem images, even on an UNLOCKED
+  bootloader. A failed check runs an infinite loop -> the "hang".
+- The check runs BEFORE writing (common/loader/fastboot.c), so a failed
+  flash writes nothing. Nothing was damaged.
+- What is checked:
+    * the image must be the full partition size (36700160 bytes for
+      recovery) with an AVB hash footer at the end, and
+    * that footer must be signed by the key that the vbmeta partition
+      lists for "recovery".
+- KEY DISCOVERY: iBall's stock vbmeta is signed with Google's PUBLIC
+  AOSP test key (testkey_rsa4096, sha1 2597c218...). Checked with:
+      avbtool verify_image --image <vbmeta payload> --key testkey_rsa4096.pem
+      -> "Successfully verified SHA256_RSA4096 vbmeta struct"
+  So we can make a vbmeta the bootloader accepts as genuine.
+
+---------------------------------------------------------------------
+1. ONE-TIME HOST SETUP
+---------------------------------------------------------------------
+a) USB permission for the tablet (Spreadtrum vendor id 1782):
+     echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1782", MODE="0666", GROUP="plugdev"' \
+       | sudo tee /etc/udev/rules.d/51-spreadtrum.rules
+     sudo udevadm control --reload-rules
+   Then unplug and replug the tablet, and accept "Allow USB debugging" on it.
+
+b) repo tool:
+     curl -s https://storage.googleapis.com/git-repo-downloads/repo -o ~/.local/bin/repo
+     chmod +x ~/.local/bin/repo
+
+c) Python 2.7 (Android 9 build needs it; Ubuntu 26.04 has none):
+     cd ~/claude/tools/py2src
+     curl -LO https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tar.xz
+     tar xf Python-2.7.18.tar.xz && cd Python-2.7.18
+     CFLAGS="-O2 -std=gnu99 -Wno-error" ./configure --prefix=$HOME/claude/tools/python2
+     make -j8 && make install
+     mkdir -p ~/claude/tools/buildbin
+     ln -sf ~/claude/tools/python2/bin/python2 ~/claude/tools/buildbin/python
+
+d) avbtool + AOSP test key (from AOSP external/avb, android12-release):
+     ~/claude/tools/avb/avbtool.py
+     ~/claude/tools/avb/testkey_rsa4096.pem
+
+---------------------------------------------------------------------
+2. GET THE TWRP SOURCE (~22 GB)
+---------------------------------------------------------------------
+     mkdir -p ~/claude/twrp/src && cd ~/claude/twrp/src
+     repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-9.0
+     repo sync -c --no-tags --no-clone-bundle --optimized-fetch --prune -j8
+
+---------------------------------------------------------------------
+3. FIX THE OLD BUILD TOOLS FOR A NEW UBUNTU
+---------------------------------------------------------------------
+a) Prebuilt clang & clang-tools want libncurses.so.5 / libtinfo.so.5
+   (Ubuntu 26.04 only has .so.6). Compatibility links:
+     cd ~/claude/twrp/src
+     ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6   prebuilts/clang/host/linux-x86/clang-4691093/lib64/libtinfo.so.5
+     ln -sf /usr/lib/x86_64-linux-gnu/libncurses.so.6 prebuilts/clang-tools/linux-x86/lib64/libncurses.so.5
+     ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6   prebuilts/clang-tools/linux-x86/lib64/libtinfo.so.5
+   (build_twrp.sh also creates the same links in out/soong/host/linux-x86/lib64
+    and out/host/linux-x86/lib64 for host tools built during the build.)
+
+b) New coreutils "comm" fails on unsorted input. In
+   build/make/core/definitions.mk line 1851 change
+       comm -13 $@.dynsyms ...
+   to
+       comm --nocheck-order -13 $@.dynsyms ...
+
+c) Do NOT set PLATFORM_SDK_VERSION in BoardConfig.mk
+   (error: sepolicy_major_version does not match PLATFORM_SDK_VERSION).
+
+---------------------------------------------------------------------
+4. THE DEVICE TREE  (~/claude/twrp/src/device/iball/Slide_Skye_03)
+---------------------------------------------------------------------
+Facts taken from the stock recovery.img (unpacked to ~/claude/twrp/stock_recovery):
+  - header v0, page size 2048, kernel offset 0x8000, ramdisk 0x05400000,
+    tags 0x100, cmdline "console=ttyS1,115200n8 buildvariant=user"
+  - kernel = uncompressed Image (10.9 MB)
+  - SPRD "appended DT" (0x1b800 bytes) after the ramdisk; its size is
+    stored in header offset 40
+  - partitions: /dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/*
+  - /data = f2fs (unencrypted on this tablet), USB = configfs, musb-hdrc.0.auto
+  - display = Spreadtrum ADF, RGBX_8888, backlight /sys/class/backlight/sprd_backlight
+  - touch = cst2xx (reports 600x1024 portrait); screen = 1024x600;
+    vendor build.prop has ro.sf.hwrotation=270
+
+Files:
+  AndroidProducts.mk         -> lists omni_Slide_Skye_03.mk
+  omni_Slide_Skye_03.mk      -> product name/brand/model/device
+  BoardConfig.mk             -> arm cortex-a7, stock prebuilt kernel,
+                                partition sizes, TWRP flags
+  prebuilt/kernel            -> stock recovery kernel
+  prebuilt/dt.img            -> stock SPRD DT blob
+  recovery.fstab             -> stock fstab (build system needs it)
+  recovery/root/etc/twrp.fstab              -> TWRP partitions (incl. NV/IMEI)
+  recovery/root/init.recovery.usb.rc        -> configfs adb + MTP gadget
+  recovery/root/init.recovery.sp7731e_1h10.rc -> usb controller, spl force_ro off
+  recovery/root/ueventd.sp7731e_1h10.rc     -> copied from stock
+
+Reference tree used for SPRD-specific flags:
+  https://github.com/vados-dev/TWRP_9.0_ENCRYPT_SC7731e
+
+---------------------------------------------------------------------
+5. BUILD
+---------------------------------------------------------------------
+     ~/claude/build_twrp.sh
+   which does:
+     export PATH=~/claude/tools/buildbin:~/claude/tools/python2/bin:$PATH
+     export LC_ALL=C ALLOW_MISSING_DEPENDENCIES=true
+     cd ~/claude/twrp/src
+     source build/envsetup.sh
+     lunch omni_Slide_Skye_03-eng
+     mka -j6 recoveryimage
+     python3 ~/claude/tools/scripts/make_twrp_img.py \
+         out/target/product/Slide_Skye_03/recovery.img \
+         ~/claude/out/twrp-3.7.0_9-KGV-Slide_Skye_03.img
+
+---------------------------------------------------------------------
+6. PACK INTO THE STOCK LAYOUT  (tools/scripts/make_twrp_img.py)
+---------------------------------------------------------------------
+AOSP mkbootimg cannot write the SPRD appended DT, so the script:
+  1. takes the TWRP ramdisk out of the built recovery.img
+  2. writes a header v0 exactly like stock (same addresses, dt_size at
+     offset 40, SHA1 id over kernel+ramdisk+second+dt)
+  3. appends stock kernel + TWRP ramdisk + stock SPRD DT
+  4. avbtool add_hash_footer --partition_size 36700160 --partition_name recovery
+     --algorithm SHA256_RSA4096 --key testkey_rsa4096.pem
+Self-test: packing the STOCK ramdisk gives a payload byte-identical to
+the stock recovery.img.
+
+---------------------------------------------------------------------
+7. CUSTOM VBMETA  (tools/scripts/make_custom_vbmeta.py)
+---------------------------------------------------------------------
+Stock vbmeta-sign.img = 0x200-byte SPRD "DHTB" header + AVB vbmeta.
+DHTB is NOT a signature: magic "DHTB", version 1, sha256(payload) at
+offset 8, payload size (0x3000) at offset 0x30.
+
+The script:
+  1. reads every chain descriptor from the stock vbmeta
+       boot loc1, system loc3, vendor loc4, recovery loc2,
+       w_modem loc5, w_gdsp loc6, pm_sys loc7
+  2. rebuilds vbmeta with avbtool make_vbmeta_image, signed with
+     testkey_rsa4096 (same key as stock), keeping every ORIGINAL public
+     key, except recovery -> our testkey public key
+  3. pads to 0x3000, writes a fresh DHTB header (new sha256), pads to
+     12800 bytes like stock
+Output: ~/claude/out/vbmeta-custom-KGV.img
+=> Normal Android verifies exactly as before; recovery now accepts
+   images signed with testkey.
+
+---------------------------------------------------------------------
+8. FLASH (what was actually run)
+---------------------------------------------------------------------
+     adb reboot bootloader
+     fastboot devices                     # 1900567000077  fastboot
+     # control test - stock recovery flashes fine:
+     fastboot flash recovery ~/claude/firmware/unpacked/recovery.img
+     # the real thing:
+     fastboot flash vbmeta   ~/claude/out/vbmeta-custom-KGV.img            -> OKAY 0.34 s
+     fastboot flash recovery ~/claude/out/twrp-3.7.0_9-KGV-Slide_Skye_03.img -> OKAY 2.4 s
+     fastboot reboot                      # Android boots normally (orange state)
+     adb reboot recovery                  # TWRP 3.7.0_9-KGV comes up
+
+No "fastboot boot" on this bootloader, so test only by flashing recovery.
+Key combo for recovery from power-off: Power + Volume Up.
+Fastboot from power-off: Power + Volume Down.
+
+---------------------------------------------------------------------
+9. HOW TO UNDO
+---------------------------------------------------------------------
+     adb reboot bootloader
+     fastboot flash recovery ~/claude/firmware/unpacked/recovery.img
+     fastboot flash vbmeta   ~/claude/firmware/unpacked/vbmeta-sign.img
+Last resort (dead tablet): BootROM download mode + stock .pac with
+spd_dump (~/claude/tools/spd_dump) or SPD Research Download Tool.
+
+---------------------------------------------------------------------
+10. FIXES AFTER THE FIRST BOOT
+---------------------------------------------------------------------
+a) Touch landed in the wrong place + theme looked stretched.
+   TWRP log: "Scaling theme width 2.13x height 0.75x" -> the display
+   scans out 1024x600 LANDSCAPE, but the cst2xx touch panel reports
+   600x1024 (Android hides this with ro.sf.hwrotation=270 in
+   /vendor/build.prop).
+   Measured with:  adb shell getevent -lt /dev/input/event3
+   holding the tablet in LANDSCAPE with TWRP text upright, 3 corners:
+     top-left    -> touch (550, 15)
+     top-right   -> touch (560, 975)
+     bottom-left -> touch (35, 39)
+   => screen_x = touch_y, screen_y = 600 - touch_x
+      (touch panel mounted rotated 90 deg; Android: ro.sf.hwrotation=270)
+   BoardConfig.mk:
+     TW_THEME := landscape_mdpi
+     RECOVERY_TOUCHSCREEN_SWAP_XY := true
+     RECOVERY_TOUCHSCREEN_FLIP_Y := true
+   Lesson: always measure THREE corners (TL, TR, BL) with the tablet
+   held the way the UI is drawn. Two earlier attempts from 2-corner
+   tests (swap only / nothing) were wrong.
+   Theme now scales 1.28x / 1.25x (undistorted).
+
+b) MTP: "E:[MTP] Failed to start usb driver!"
+   Spreadtrum's kernel f_mtp.c mtp_open() waits only 1 s for the PC to
+   configure USB, then returns EBUSY. TWRP tried once and gave up.
+   Patched bootable/recovery/mtp/ffs/MtpDevHandle.cpp
+   MtpDevHandle::start() to retry open() on EBUSY/ENODEV
+   (60 tries, 0.5 s apart).
+
+Re-flash after these fixes (recovery only, vbmeta unchanged):
+     adb reboot bootloader
+     fastboot flash recovery ~/claude/out/twrp-3.7.0_9-KGV-Slide_Skye_03.img
+     fastboot reboot ; adb reboot recovery
+
+FIRST THING TO DO IN TWRP:
+  Backup -> Boot, System, Vendor, NV (fixnv1/2, runtimenv1/2), Modem
+  -> copy the backup to the PC. NV partitions hold IMEI/calibration.
+=====================================================================

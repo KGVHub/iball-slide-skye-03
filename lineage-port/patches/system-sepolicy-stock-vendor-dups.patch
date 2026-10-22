@@ -1,0 +1,40 @@
+diff --git a/Android.mk b/Android.mk
+index 25a3474..7339250 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -309,8 +309,21 @@ $(LOCAL_BUILT_MODULE): $(plat_policy.conf) $(HOST_OUT_EXECUTABLES)/checkpolicy \
+ 	$(hide) $(CHECKPOLICY_ASAN_OPTIONS) $(HOST_OUT_EXECUTABLES)/checkpolicy -M -C -c \
+ 		$(POLICYVERS) -o $@ $<
+ 	$(hide) cat $(PRIVATE_ADDITIONAL_CIL_FILES) >> $@
++ifneq ($(BOARD_SEPOLICY_STOCK_VENDOR_CIL),)
++	$(hide) grep '^(genfscon ' $(PRIVATE_STOCK_VENDOR_CIL) | \
++		awk 'NR==FNR {d[$$0] = 1; next} !($$0 in d)' - $@ > $@.tmp && mv $@.tmp $@
++endif
+ 	$(hide) $(HOST_OUT_EXECUTABLES)/secilc -m -M true -G -c $(POLICYVERS) $@ -o /dev/null -f /dev/null
+ 
++# A vendor image built before the platform started declaring mapped
++# attributes itself is compiled by an init that does not pass -m to secilc,
++# so a statement made by both the stock vendor policy and the platform fails
++# the boot. Leave out what BOARD_SEPOLICY_STOCK_VENDOR_CIL already states.
++ifneq ($(BOARD_SEPOLICY_STOCK_VENDOR_CIL),)
++$(LOCAL_BUILT_MODULE): PRIVATE_STOCK_VENDOR_CIL := $(BOARD_SEPOLICY_STOCK_VENDOR_CIL)
++$(LOCAL_BUILT_MODULE): $(BOARD_SEPOLICY_STOCK_VENDOR_CIL)
++endif
++
+ built_plat_cil := $(LOCAL_BUILT_MODULE)
+ plat_policy.conf :=
+ 
+@@ -360,6 +373,13 @@ endif
+ 
+ $(LOCAL_BUILT_MODULE): $(current_mapping.cil) $(ACP)
+ 	$(hide) $(ACP) $< $@
++ifneq ($(BOARD_SEPOLICY_STOCK_VENDOR_CIL),)
++	$(hide) grep '^(typeattribute [^ ()]*)$$' $(PRIVATE_STOCK_VENDOR_CIL) | \
++		awk 'NR==FNR {d[$$0] = 1; next} !($$0 in d)' - $@ > $@.tmp && mv $@.tmp $@
++
++$(LOCAL_BUILT_MODULE): PRIVATE_STOCK_VENDOR_CIL := $(BOARD_SEPOLICY_STOCK_VENDOR_CIL)
++$(LOCAL_BUILT_MODULE): $(BOARD_SEPOLICY_STOCK_VENDOR_CIL)
++endif
+ 
+ built_mapping_cil := $(LOCAL_BUILT_MODULE)
+ current_mapping.cil :=

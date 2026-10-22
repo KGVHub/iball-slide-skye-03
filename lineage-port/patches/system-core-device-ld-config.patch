@@ -1,0 +1,17 @@
+diff --git a/rootdir/Android.mk b/rootdir/Android.mk
+index 3377716..7f2565f 100644
+--- a/rootdir/Android.mk
++++ b/rootdir/Android.mk
+@@ -248,7 +248,11 @@ sanitizer_runtime_libraries :=
+ else # if _enforce_vndk_at_runtime is not true
+ 
+ LOCAL_MODULE := ld.config.txt
+-ifeq ($(PRODUCT_FULL_TREBLE)|$(SANITIZE_TARGET),true|)
++ifneq ($(TARGET_LD_CONFIG_FILE),)
++# Device-specific linker config, e.g. for a stock vendor that ships its own
++# (older) copies of VNDK libraries that must not shadow the platform's.
++LOCAL_SRC_FILES := ../../../$(TARGET_LD_CONFIG_FILE)
++else ifeq ($(PRODUCT_FULL_TREBLE)|$(SANITIZE_TARGET),true|)
+ LOCAL_SRC_FILES := etc/ld.config.txt
+ else
+ LOCAL_SRC_FILES := etc/ld.config.legacy.txt

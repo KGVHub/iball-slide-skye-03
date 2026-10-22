@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LineageOS 15.1 for the iBall Slide Skye 03. Put in .repo/local_manifests/ -->
+<manifest>
+  <remote name="kgvhub" fetch="https://github.com/KGVHub/" />
+
+  <remove-project name="LineageOS/android_system_core" />
+  <project path="system/core" name="android_system_core" remote="kgvhub" revision="lineage-15.1" groups="pdk" />
+
+  <remove-project name="LineageOS/android_system_sepolicy" />
+  <project path="system/sepolicy" name="android_system_sepolicy" remote="kgvhub" revision="lineage-15.1" groups="pdk" />
+
+  <project path="device/iball/Slide_Skye_03" name="android_device_iball_Slide_Skye_03" remote="kgvhub" revision="lineage-15.1" />
+  <project path="vendor/iball/Slide_Skye_03" name="android_vendor_iball_Slide_Skye_03" remote="kgvhub" revision="lineage-15.1" />
+</manifest>
