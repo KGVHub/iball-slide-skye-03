@@ -138,6 +138,10 @@ Two later fixes (no longer boot blockers):
    (`hal_log_hwservice`) that only iBall's platform policy had; the device
    platform policy declares it.
 
+7. **Haptics**: the vibration motor needs tens of milliseconds to spin up;
+   AOSP's 1 ms / 10 ms haptic pulses could not be felt. A device overlay uses
+   stock's 30 ms key pattern and a 40 ms long-press.
+
 Debug loop that worked: read `logcat` (or `/sys/fs/pstore` from TWRP after
 a crash), rebuild only the failing part, push it into `/system` from TWRP,
 reboot.

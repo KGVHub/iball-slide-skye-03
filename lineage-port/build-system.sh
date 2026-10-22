@@ -36,6 +36,13 @@ export ANDROID_JACK_VM_ARGS='-Dfile.encoding=UTF-8 -XX:+TieredCompilation -Xmx2G
 export JACK_SERVER_VM_ARGUMENTS="$ANDROID_JACK_VM_ARGS"
 export JACK_HOME="$SOURCE_DIR/out/jack-server"
 export JACK_CLIENT_SETTING="$SOURCE_DIR/out/jack-settings"
+# 8 GB hosts: one Jack compilation at a time (each can take most of the
+# 2 GB heap), and make this build, not the desktop or shell, the first
+# process the OOM killer picks if memory still runs out.
+if [ -f "$JACK_HOME/config.properties" ]; then
+ sed -i 's/^jack.server.max-service=.*/jack.server.max-service=1/' "$JACK_HOME/config.properties"
+fi
+echo 500 > /proc/self/oom_score_adj
 export PATH="$PROJECT_ROOT/tools/buildbin:$PROJECT_ROOT/tools/python2/bin:$PATH"
 if [ -x "$SOURCE_DIR/prebuilts/jdk/jdk8/linux-x86/bin/java" ]; then
  export JAVA_HOME="$SOURCE_DIR/prebuilts/jdk/jdk8/linux-x86"
@@ -47,4 +54,4 @@ export PATH="$JAVA_HOME/bin:$PATH"
 cd "$SOURCE_DIR"
 source build/envsetup.sh
 lunch lineage_Slide_Skye_03-userdebug
-make -j"${JOBS:-2}" systemimage fec 2>&1 | tee "$PROJECT_ROOT/work/lineage_build.log"
+make -j"${JOBS:-1}" systemimage fec 2>&1 | tee "$PROJECT_ROOT/work/lineage_build.log"

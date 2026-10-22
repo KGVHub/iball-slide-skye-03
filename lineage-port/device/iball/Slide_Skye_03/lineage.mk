@@ -19,3 +19,5 @@ PRODUCT_LOCALES := en_US
 # Proprietary system libraries the stock vendor needs (libefuse, librpmbclient),
 # from android_vendor_iball_Slide_Skye_03.
 $(call inherit-product, vendor/iball/Slide_Skye_03/Slide_Skye_03-vendor.mk)
+
+DEVICE_PACKAGE_OVERLAYS += device/iball/Slide_Skye_03/overlay
