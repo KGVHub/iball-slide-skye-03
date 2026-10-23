@@ -15,4 +15,12 @@
         <item>0</item>
         <item>40</item>
     </integer-array>
+
+    <!-- This persistent stock-vendor app requires the stock platform signature
+         to contact the modem services. Under LineageOS it only retries and logs
+         SELinux denials, so keep it disabled unless explicitly launched. -->
+    <string-array name="config_disabledUntilUsedPreinstalledCarrierApps"
+                  translatable="false">
+        <item>com.android.modemnotifier</item>
+    </string-array>
 </resources>

@@ -27,3 +27,8 @@ PRODUCT_PACKAGES += FMRadio
 # /dev/fm is owned by the media group (stock platform.xml did the same).
 PRODUCT_COPY_FILES += \
     device/iball/Slide_Skye_03/permissions/fmradio-media-gid.xml:system/etc/permissions/fmradio-media-gid.xml
+
+# Avoid visible frame-pacing stalls while the Mali governor climbs from its
+# lowest 153.6 MHz step. The demand power policy still gates an idle GPU.
+PRODUCT_COPY_FILES += \
+    device/iball/Slide_Skye_03/rootdir/etc/init/kgv-perf.rc:system/etc/init/kgv-perf.rc

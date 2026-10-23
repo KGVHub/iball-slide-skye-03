@@ -52,3 +52,4 @@ BOARD_PLAT_PUBLIC_SEPOLICY_DIR := device/iball/Slide_Skye_03/sepolicy/public
 
 # FM: use the stock Spreadtrum libfmjni (vendor tree), not FMRadio's MediaTek one.
 BOARD_FMRADIO_PREBUILT_JNI := true
+BOARD_PLAT_PRIVATE_SEPOLICY_DIR := device/iball/Slide_Skye_03/sepolicy/private

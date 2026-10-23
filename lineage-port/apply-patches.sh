@@ -15,3 +15,5 @@ apply_patch_file system/sepolicy "$PROJECT_ROOT/lineage-port/patches/system-sepo
 apply_patch_file system/core "$PROJECT_ROOT/lineage-port/patches/system-core-device-ld-config.patch"
 apply_patch_file build/make "$PROJECT_ROOT/lineage-port/patches/build-make-device-vintf.patch"
 apply_patch_file packages/apps/FMRadio "$PROJECT_ROOT/lineage-port/patches/packages-apps-FMRadio-sprd-jni.patch"
+apply_patch_file frameworks/base "$PROJECT_ROOT/lineage-port/patches/frameworks-base-disabled-persistent-apps.patch"
+apply_patch_file packages/apps/Trebuchet "$PROJECT_ROOT/lineage-port/patches/packages-apps-Trebuchet-light-drawer.patch"

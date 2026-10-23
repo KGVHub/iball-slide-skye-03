@@ -33,7 +33,11 @@ export LD_LIBRARY_PATH="$SOURCE_DIR/out/host-compat${LD_LIBRARY_PATH:+:$LD_LIBRA
 export LC_ALL=C
 export USE_CCACHE=false
 export CCACHE_DISABLE=1
-export WITH_DEXPREOPT=false
+# Precompile the framework and apps (Go defaults); WITH_DEXPREOPT=false for
+# quick debug builds.
+export WITH_DEXPREOPT=${WITH_DEXPREOPT:-true}
+# userdebug otherwise preopts only the boot image and system server.
+export WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY=${WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY:-false}
 export ANDROID_JACK_VM_ARGS='-Dfile.encoding=UTF-8 -XX:+TieredCompilation -Xmx2G'
 export JACK_SERVER_VM_ARGUMENTS="$ANDROID_JACK_VM_ARGS"
 export JACK_HOME="$SOURCE_DIR/out/jack-server"

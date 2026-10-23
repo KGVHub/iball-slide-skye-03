@@ -1,0 +1,68 @@
+diff --git a/src/com/android/launcher3/allapps/AllAppsTransitionController.java b/src/com/android/launcher3/allapps/AllAppsTransitionController.java
+index 743b16e..87c5395 100644
+--- a/src/com/android/launcher3/allapps/AllAppsTransitionController.java
++++ b/src/com/android/launcher3/allapps/AllAppsTransitionController.java
+@@ -268,6 +268,10 @@ public class AllAppsTransitionController implements TouchController, SwipeDetect
+             mHotseat.setVisibility(View.VISIBLE);
+             mHotseatBackgroundColor = mHotseat.getBackgroundDrawableColor();
+             mHotseat.setBackgroundTransparent(true /* transparent */);
++            if (FeatureFlags.LAUNCHER3_SIMPLE_ALL_APPS_TRANSITION) {
++                mAppsView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
++                mAppsView.buildLayer();
++            }
+             if (!mLauncher.isAllAppsVisible()) {
+                 mLauncher.tryAndUpdatePredictedApps();
+                 mAppsView.setVisibility(View.VISIBLE);
+@@ -315,6 +319,18 @@ public class AllAppsTransitionController implements TouchController, SwipeDetect
+         mProgress = progress;
+         float shiftCurrent = progress * mShiftRange;
+ 
++        // Low-end devices cannot redraw and blend the drawer, workspace, hotseat,
++        // gradient and status-bar state at 60 fps. Keep the content opaque and
++        // animate one hardware-composited layer instead.
++        if (FeatureFlags.LAUNCHER3_SIMPLE_ALL_APPS_TRANSITION) {
++            mAppsView.getContentView().setAlpha(1f);
++            mAppsView.setTranslationY(shiftCurrent);
++            if (progress == 0f || progress == 1f) {
++                updateLightStatusBar(shiftCurrent);
++            }
++            return;
++        }
++
+         float workspaceHotseatAlpha = Utilities.boundToRange(progress, 0f, 1f);
+         float alpha = 1 - workspaceHotseatAlpha;
+         float workspaceAlpha = mWorkspaceAccelnterpolator.getInterpolation(workspaceHotseatAlpha);
+@@ -506,6 +522,9 @@ public class AllAppsTransitionController implements TouchController, SwipeDetect
+             mSpringAnimationHandler.reset();
+         }
+         setProgress(0f);
++        if (FeatureFlags.LAUNCHER3_SIMPLE_ALL_APPS_TRANSITION) {
++            mAppsView.setLayerType(View.LAYER_TYPE_NONE, null);
++        }
+     }
+ 
+     public void finishPullDown() {
+@@ -517,6 +536,9 @@ public class AllAppsTransitionController implements TouchController, SwipeDetect
+             mSpringAnimationHandler.reset();
+         }
+         setProgress(1f);
++        if (FeatureFlags.LAUNCHER3_SIMPLE_ALL_APPS_TRANSITION) {
++            mAppsView.setLayerType(View.LAYER_TYPE_NONE, null);
++        }
+     }
+ 
+     private void cancelAnimation() {
+diff --git a/src/com/android/launcher3/config/BaseFlags.java b/src/com/android/launcher3/config/BaseFlags.java
+index 36a2f3a..897f3ad 100644
+--- a/src/com/android/launcher3/config/BaseFlags.java
++++ b/src/com/android/launcher3/config/BaseFlags.java
+@@ -42,7 +42,8 @@ abstract class BaseFlags {
+     // When enabled the promise icon is visible in all apps while installation an app.
+     public static final boolean LAUNCHER3_PROMISE_APPS_IN_ALL_APPS = true;
+     // When enabled uses the AllAppsRadialGradientAndScrimDrawable for all apps
+-    public static final boolean LAUNCHER3_GRADIENT_ALL_APPS = true;
++    public static final boolean LAUNCHER3_GRADIENT_ALL_APPS = false;
++    public static final boolean LAUNCHER3_SIMPLE_ALL_APPS_TRANSITION = true;
+     // When enabled allows use of physics based motions in the Launcher.
+     public static final boolean LAUNCHER3_PHYSICS = true;
+     // When enabled allows use of spring motions on the icons.

@@ -1,0 +1,11 @@
+# Device-specific performance settings backed by measurements in
+# docs/PERFORMANCE.md.
+
+on property:sys.boot_completed=1
+    write /sys/class/devfreq/60000000.gpu/min_freq 384000000
+    # Keep all four Cortex-A7 cores online: Spreadtrum hotplug otherwise
+    # drops to one core and only brings cores back after sustained 80-90%
+    # load, which lands at the start of every app launch. Measured: launcher
+    # jank 6.5% -> 4.0%, Camera 1252 -> 1127 ms, Settings 907 -> 832 ms.
+    # Idle power cost not measured yet (battery test pending).
+    write /sys/devices/system/cpu/cpuhotplug/cluster0_core_min_limit 4

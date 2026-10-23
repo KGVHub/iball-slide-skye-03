@@ -1,0 +1,13 @@
+diff --git a/services/core/java/com/android/server/pm/PackageManagerService.java b/services/core/java/com/android/server/pm/PackageManagerService.java
+index 743d469a..e71b5743 100644
+--- a/services/core/java/com/android/server/pm/PackageManagerService.java
++++ b/services/core/java/com/android/server/pm/PackageManagerService.java
+@@ -9043,7 +9043,7 @@ public class PackageManagerService extends IPackageManager.Stub
+                     if (ps != null) {
+                         ApplicationInfo ai = PackageParser.generateApplicationInfo(p, flags,
+                                 ps.readUserState(userId), userId);
+-                        if (ai != null) {
++                        if (ai != null && ai.enabled) {
+                             finalList.add(ai);
+                         }
+                     }

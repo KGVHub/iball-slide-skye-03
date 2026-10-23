@@ -1,0 +1,10 @@
+# Log-only silencing; nothing here grants access.
+
+# The stock vendor ships older copies of VNDK libraries in /vendor/lib.
+# When media processes load vendor codec/audio libraries, the linker probes
+# those copies first, is denied, and then uses the platform ones; the probe
+# is harmless but logs a denial every time.
+dontaudit { audioserver mediaserver mediacodec } vendor_file:file read;
+
+# Seen while a video plays; playback through the hardware decoder works.
+dontaudit surfaceflinger mediacodec:binder call;
