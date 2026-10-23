@@ -10,6 +10,8 @@ and a LineageOS 15.1 system that runs on the stock vendor partition.
 | **TWRP 3.7.0_9** | Works (touch, adb, data, flashing) |
 | **LineageOS 15.1** | Boots to the setup wizard. Checked: touch, display/GPU, WiFi scan, Bluetooth, both cameras, sensors, audio output, charging. Not yet tested: WiFi connect, audio playback, FM, GPS, calls/SMS |
 
+**Performance:** boot 43 s → 33 s, app launches 30-45% faster, all measured on the tablet: [see the results](docs/XDA-PERFORMANCE.md).
+
 Downloads are on the [Releases](../../releases) page. **Read all of this
 before flashing.** You flash at your own risk.
 
